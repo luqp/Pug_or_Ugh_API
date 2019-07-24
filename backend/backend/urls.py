@@ -22,6 +22,8 @@ from pugorugh import views
 
 
 router = routers.SimpleRouter()
+router.register(r'user', views.UserPrefView)
+router.register(r'dog', views.StateDogView)
 
 
 urlpatterns = [
