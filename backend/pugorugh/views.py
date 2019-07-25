@@ -22,6 +22,10 @@ class UserPrefView(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'put'])
     def preferences(self, request, pk=None):
+        ''' 
+            Send user preference data (GET),
+            Update user preference data (PUT)
+        '''
         try:
             user_pref = UserPref.objects.get(user__id=request.user.id)
         except:
@@ -53,19 +57,16 @@ class StateDogView(viewsets.ModelViewSet):
             methods=['get'],
             url_path="(?P<pk>.+)/(?P<dog_status>liked|disliked|undecided)/next")
     def next_dog(self, request, pk=None, dog_status=None):
+        '''
+            Send the data of the next dog with id greater than pk
+            that is in one of the dog_status groups.
+        '''
         favorite_dogs = self.get_queryset()
         try:
             pk = int(pk)
         except ValueError:
             raise Http404
-        if dog_status != "undecided":
-            dogs = favorite_dogs.filter(
-                userdog__status=dog_status[0]
-            )
-        else:
-            dogs = favorite_dogs.exclude(
-                userdog__status__in="l, d"
-            )
+        dogs = favorite_dogs.filter(userdog__status=dog_status[0])
         dog = dogs.filter(id__gt=pk).first()
         if not dog:
             dog = dogs.first()
@@ -78,6 +79,10 @@ class StateDogView(viewsets.ModelViewSet):
             methods=['put'],
             url_path="(?P<pk>\d+)/(?P<dog_status>liked|disliked|undecided)")
     def status_update(self, request, pk=None, dog_status=None):
+        '''
+            Update the state of the dog with id = pk 
+            to the one indicated in dog_status.
+        '''
         user_dog = UserDog.objects.filter(
             user__id=request.user.id,
             dog__id=self.kwargs.get('pk')
