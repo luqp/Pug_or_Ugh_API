@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404, Http404
+from django.shortcuts import Http404
 
 from rest_framework import permissions, viewsets, status
 from rest_framework.generics import CreateAPIView
@@ -42,20 +42,18 @@ class StateDogView(viewsets.ModelViewSet):
     def get_queryset(self):
         user_id = self.request.user.id
         user_pref = UserPref.objects.get(user_id=user_id)
-        favorites = dogs = Dog.objects.filter(
+        dogs_pref = Dog.objects.filter(
             age_status__in=user_pref.age,
             gender__in=user_pref.gender,
             size__in=user_pref.size
         )
-        return dogs.filter(userdog__user__id=user_id)
+        return dogs_pref.filter(userdog__user__id=user_id)
 
     @action(detail=False,
             methods=['get'],
             url_path="(?P<pk>.+)/(?P<dog_status>liked|disliked|undecided)/next")
-    def next_dog(self, request, pk=None, *args, **kwargs):
+    def next_dog(self, request, pk=None, dog_status=None):
         favorite_dogs = self.get_queryset()
-        user_id = self.request.user.id
-        dog_status = self.kwargs.get('dog_status')
         try:
             pk = int(pk)
         except ValueError:
@@ -68,7 +66,6 @@ class StateDogView(viewsets.ModelViewSet):
             dogs = favorite_dogs.exclude(
                 userdog__status__in="l, d"
             )
-
         dog = dogs.filter(id__gt=pk).first()
         if not dog:
             dog = dogs.first()
@@ -79,16 +76,10 @@ class StateDogView(viewsets.ModelViewSet):
 
     @action(detail=False,
             methods=['put'],
-            url_path="(?P<dog_pk>\d+)/(?P<dog_status>liked|disliked|undecided)")
-    def status_update(self, request, dog_pk=None, dog_status=None):
+            url_path="(?P<pk>\d+)/(?P<dog_status>liked|disliked|undecided)")
+    def status_update(self, request, pk=None, dog_status=None):
         user_dog = UserDog.objects.filter(
             user__id=request.user.id,
-            dog__id=self.kwargs.get('dog_pk')
-        ).update(status=self.kwargs.get('dog_status')[0])
-        if not user_dog:
-            user_dog = UserDog.objects.create(
-                user_id=request.user.id,
-                dog_id=self.kwargs.get('dog_pk'),
-                status=self.kwargs.get('dog_status')[0]
-            )
+            dog__id=self.kwargs.get('pk')
+        ).update(status=dog_status[0])
         return Response(status=status.HTTP_204_NO_CONTENT)
