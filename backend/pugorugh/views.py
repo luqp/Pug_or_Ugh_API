@@ -46,12 +46,11 @@ class StateDogView(viewsets.ModelViewSet):
     def get_queryset(self):
         user_id = self.request.user.id
         user_pref = UserPref.objects.get(user_id=user_id)
-        dogs_pref = Dog.objects.filter(
+        return Dog.objects.filter(
             age_status__in=user_pref.age,
             gender__in=user_pref.gender,
             size__in=user_pref.size
         )
-        return dogs_pref.filter(userdog__user__id=user_id)
 
     @action(detail=False,
             methods=['get'],
@@ -66,7 +65,10 @@ class StateDogView(viewsets.ModelViewSet):
             pk = int(pk)
         except ValueError:
             raise Http404
-        dogs = favorite_dogs.filter(userdog__status=dog_status[0])
+        dogs = favorite_dogs.filter(
+            userdog__status=dog_status[0],
+            userdog__user__id=request.user.id
+        )
         dog = dogs.filter(id__gt=pk).first()
         if not dog:
             dog = dogs.first()
